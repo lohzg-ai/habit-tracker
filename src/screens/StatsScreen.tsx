@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, Platform, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useHabits } from '../context/HabitsContext';
+import { ScreenHeader } from '../components/ScreenHeader';
 import { addDays, today, shortDay } from '../utils/date';
 import { scheduleReminders, cancelAllReminders, requestPermissions } from '../utils/notifications';
 import { webOuter, webInner } from '../utils/responsive';
@@ -90,9 +90,7 @@ export const StatsScreen: React.FC = () => {
   return (
     <View style={[styles.root, webOuter]}>
       <View style={webInner}>
-        <SafeAreaView edges={['top']} style={styles.headerSafe}>
-          <Text style={styles.headerTitle}>Stats</Text>
-        </SafeAreaView>
+        <ScreenHeader title="Stats" />
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           {/* Summary */}

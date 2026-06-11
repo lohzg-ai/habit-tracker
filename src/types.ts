@@ -52,6 +52,13 @@ export type AppData = {
   notificationsEnabled: boolean;
 };
 
+export type UserProfile = {
+  displayName: string | null;
+  avatarUrl: string | null;
+  /** Minutes of inactivity before auto-logout. null = never auto-logout. */
+  inactivityTimeoutMins: number | null;
+};
+
 export type CompletedChallengeInfo = {
   name: string;
   days: number;

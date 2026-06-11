@@ -1,8 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useHabits, resolveHabitsForChallenge } from '../context/HabitsContext';
+import { useAuth } from '../context/AuthContext';
+import { useUserProfile } from '../context/UserProfileContext';
+import { useProfileModal } from '../context/ProfileModalContext';
 import { HabitCard } from '../components/HabitCard';
 import { ProgressRing } from '../components/ProgressRing';
 import { CelebrationOverlay } from '../components/CelebrationOverlay';
@@ -168,7 +171,15 @@ type HeaderProps = {
   activeChallenge: { day: number; total: number; name: string } | null;
 };
 
-const Header: React.FC<HeaderProps> = ({ progress, done, total, allDone, challengeDay, challengeActive, activeChallenge }) => (
+const Header: React.FC<HeaderProps> = ({ progress, done, total, allDone, challengeDay, challengeActive, activeChallenge }) => {
+  const { openProfile } = useProfileModal();
+  const { user } = useAuth();
+  const { profile } = useUserProfile();
+  const initials = profile.displayName
+    ? profile.displayName.trim().split(/\s+/).map((w) => w[0]).join('').toUpperCase().slice(0, 2)
+    : (user?.email?.[0] ?? '?').toUpperCase();
+
+  return (
   <LinearGradient colors={['#1A0A2E', '#2D1B69', '#1A1726']} style={styles.header}>
     <SafeAreaView edges={['top']} style={styles.headerInner}>
       <View style={styles.headerTop}>
@@ -187,14 +198,26 @@ const Header: React.FC<HeaderProps> = ({ progress, done, total, allDone, challen
             </View>
           ) : null}
         </View>
-        <ProgressRing
-          progress={progress}
-          size={72}
-          strokeWidth={5}
-          color={allDone ? '#43D9B8' : '#6C63FF'}
-          label={`${done}/${total}`}
-          sublabel="done"
-        />
+        <View style={styles.headerRight}>
+          <Pressable onPress={openProfile} style={styles.headerAvatar} hitSlop={10}>
+            {profile.avatarUrl ? (
+              <Image source={{ uri: profile.avatarUrl }} style={styles.headerAvatarImg} />
+            ) : (
+              <View style={styles.headerAvatarCircle}>
+                <Text style={styles.headerAvatarText}>{initials}</Text>
+              </View>
+            )}
+            <View style={styles.headerAvatarDot} />
+          </Pressable>
+          <ProgressRing
+            progress={progress}
+            size={72}
+            strokeWidth={5}
+            color={allDone ? '#43D9B8' : '#6C63FF'}
+            label={`${done}/${total}`}
+            sublabel="done"
+          />
+        </View>
       </View>
 
       {allDone ? (
@@ -211,7 +234,8 @@ const Header: React.FC<HeaderProps> = ({ progress, done, total, allDone, challen
       )}
     </SafeAreaView>
   </LinearGradient>
-);
+  );
+};
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0D0B1A' },
@@ -219,6 +243,12 @@ const styles = StyleSheet.create({
   headerInner: { paddingHorizontal: 20, paddingTop: 4 },
   headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   headerText: { flex: 1 },
+  headerRight: { alignItems: 'center', gap: 8 },
+  headerAvatar: { width: 32, height: 32 },
+  headerAvatarImg: { width: 32, height: 32, borderRadius: 16, borderWidth: 2, borderColor: '#6C63FF' },
+  headerAvatarCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#6C63FF', alignItems: 'center', justifyContent: 'center' },
+  headerAvatarText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  headerAvatarDot: { position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, borderRadius: 5, backgroundColor: '#43D9B8', borderWidth: 2, borderColor: '#1A0A2E' },
   greeting: { color: 'rgba(255,255,255,0.7)', fontSize: 14, marginBottom: 4 },
   dateText: { color: '#fff', fontSize: 20, fontWeight: '700' },
   challengeBadge: { marginTop: 8, alignSelf: 'flex-start', backgroundColor: 'rgba(108,99,255,0.3)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4, borderWidth: 1, borderColor: '#6C63FF' },

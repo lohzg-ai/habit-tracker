@@ -24,6 +24,7 @@ import {
   cancelHabitReminder,
   requestPermissions,
 } from '../utils/notifications';
+import { db } from '../lib/db';
 
 export type NewHabitInput = {
   name: string;
@@ -78,7 +79,10 @@ export const useHabits = () => {
   return ctx;
 };
 
-export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const HabitsProvider: React.FC<{ children: React.ReactNode; userId: string }> = ({
+  children,
+  userId,
+}) => {
   const [data, setData] = useState<AppData>({
     habits: [],
     logs: [],
@@ -93,14 +97,66 @@ export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [showAllDoneBanner, setShowAllDoneBanner] = useState(false);
   const bannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    loadData().then((d) => { setData(d); setLoading(false); });
-  }, []);
+  // Debounce timer for background Supabase upserts
+  const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const persist = useCallback(async (newData: AppData) => {
-    setData(newData);
-    await saveData(newData);
-  }, []);
+  // ── Initialisation: load from AsyncStorage immediately, then sync from Supabase ──
+
+  useEffect(() => {
+    const init = async () => {
+      const local = await loadData();
+
+      if (local.onboardingComplete) {
+        // Show cached data immediately so the app feels instant
+        setData(local);
+        setLoading(false);
+        // Background: pull remote and silently update
+        db.pull(userId)
+          .then((remote) => {
+            if (remote) {
+              setData(remote);
+              saveData(remote).catch(() => {});
+            }
+          })
+          .catch(() => {});
+      } else {
+        // Onboarding not done locally — check Supabase first in case user
+        // finished onboarding on another device
+        const remote = await db.pull(userId).catch(() => null);
+        const finalData = remote ?? local;
+        setData(finalData);
+        if (remote) await saveData(remote).catch(() => {});
+        setLoading(false);
+      }
+    };
+    init();
+  }, [userId]);
+
+  // ── Sync helpers ───────────────────────────────────────────────────────────
+
+  /** Fire-and-forget debounced upsert. Hot-path mutations call this instead of awaiting Supabase. */
+  const scheduleSync = useCallback(
+    (newData: AppData) => {
+      if (syncTimer.current) clearTimeout(syncTimer.current);
+      syncTimer.current = setTimeout(() => {
+        db.upsertAll(userId, newData).catch(() => {});
+      }, 300);
+    },
+    [userId],
+  );
+
+  // ── Persistence ────────────────────────────────────────────────────────────
+
+  const persist = useCallback(
+    async (newData: AppData) => {
+      setData(newData);
+      await saveData(newData); // AsyncStorage — fast, synchronous from user perspective
+      scheduleSync(newData);   // Supabase — debounced, fire-and-forget
+    },
+    [scheduleSync],
+  );
+
+  // ── Derived state ──────────────────────────────────────────────────────────
 
   const getTodayCount = useCallback(
     (habitId: string) => {
@@ -125,6 +181,8 @@ export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     ? Math.min(daysBetween(data.challenge.startDate, today()) + 1, data.challenge.durationDays)
     : null;
 
+  // ── Challenge completion check ─────────────────────────────────────────────
+
   const checkAllChallenges = useCallback((updatedData: AppData): AppData => {
     const isAllDoneForHabitsOnDate = (habitIds: string[], date: string): boolean => {
       const habits = resolveHabitsForChallenge(habitIds, updatedData.habits);
@@ -134,7 +192,6 @@ export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       });
     };
 
-    // Check main kickstart challenge
     if (updatedData.challenge && !updatedData.challenge.rewarded) {
       const { startDate, durationDays, habitIds } = updatedData.challenge;
       let allComplete = true;
@@ -150,7 +207,6 @@ export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     }
 
-    // Check custom challenges
     for (const cc of updatedData.customChallenges) {
       if (!cc.rewarded) {
         let allComplete = true;
@@ -173,6 +229,8 @@ export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
     return updatedData;
   }, []);
+
+  // ── Mutations ──────────────────────────────────────────────────────────────
 
   const logHabit = useCallback(async (habitId: string) => {
     const habit = data.habits.find((h) => h.id === habitId);
@@ -264,12 +322,16 @@ export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const deleteHabit = useCallback(async (habitId: string) => {
     await cancelHabitReminder(habitId);
-    await persist({
+    const newData = {
       ...data,
       habits: data.habits.filter((h) => h.id !== habitId),
       logs: data.logs.filter((l) => l.habitId !== habitId),
-    });
-  }, [data, persist]);
+    };
+    // Persist locally first for instant UX, then delete from Supabase.
+    // We await the remote delete so a reload can't resurface the deleted habit.
+    await persist(newData);
+    await db.deleteHabitAndLogs(userId, habitId).catch(() => {});
+  }, [data, persist, userId]);
 
   const updateHabitReminder = useCallback(async (habitId: string, reminder: HabitReminder | null) => {
     const habit = data.habits.find((h) => h.id === habitId);
@@ -298,14 +360,18 @@ export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       reminder: input.reminder ?? null,
     }));
     const habitIds = newHabits.map((h) => h.id);
-    await persist({
+    const newData: AppData = {
       ...data,
       habits: newHabits,
       challenge: { startDate: today(), durationDays: 3, rewarded: false, habitIds },
       customChallenges: [],
       onboardingComplete: true,
-    });
-  }, [data, persist]);
+    };
+    setData(newData);
+    await saveData(newData);
+    // Full push for onboarding — replaces any stale remote state
+    db.pushAll(userId, newData).catch(() => {});
+  }, [data, userId]);
 
   const dismissChallengeReward = useCallback(async () => {
     setChallengeJustCompleted(null);
@@ -333,7 +399,8 @@ export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const deleteCustomChallenge = useCallback(async (id: string) => {
     await persist({ ...data, customChallenges: data.customChallenges.filter((c) => c.id !== id) });
-  }, [data, persist]);
+    await db.deleteCustomChallenge(userId, id).catch(() => {});
+  }, [data, persist, userId]);
 
   const updateChallengeHabits = useCallback(async (type: 'main' | string, habitIds: string[]) => {
     if (type === 'main' && data.challenge) {
@@ -348,7 +415,8 @@ export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [data, persist]);
 
-  // Recalculates streak/bestStreak for all habits from log history
+  // ── Streak recalculation ───────────────────────────────────────────────────
+
   const recalcHabitStreaks = (habits: Habit[], logs: HabitLog[]): Habit[] => {
     return habits.map((habit) => {
       let streak = 0;
@@ -363,7 +431,7 @@ export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   };
 
-  // ── Dev helpers ───────────────────────────────────────────────────────────
+  // ── Dev helpers ────────────────────────────────────────────────────────────
 
   const devCompleteAllHabitsToday = useCallback(async (filterHabitIds?: string[]) => {
     const t = today();
@@ -411,7 +479,6 @@ export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       rewarded: false,
       habitIds: data.challenge?.habitIds ?? [],
     };
-    // Backdate createdAt so history/stats show data for all simulated days
     const backdatedHabits = data.habits.map((h) => ({
       ...h,
       createdAt: h.createdAt.slice(0, 10) > startDate
@@ -429,7 +496,6 @@ export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!challenge || challenge.rewarded) return;
 
     const { durationDays, habitIds } = challenge;
-    // Rebase start date so the last day = today, ensuring all days are in the past/today
     const newStartDate = daysAgo(durationDays - 1);
     const habitsToFill = resolveHabitsForChallenge(habitIds, data.habits);
 
@@ -446,7 +512,6 @@ export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     }
 
-    // Backdate createdAt so history/stats screens show data for all simulated days
     const backdatedHabits = data.habits.map((h) => ({
       ...h,
       createdAt: h.createdAt.slice(0, 10) > newStartDate
@@ -495,10 +560,13 @@ export const HabitsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [data, persist]);
 
   const devResetAll = useCallback(async () => {
+    const empty: AppData = { habits: [], logs: [], challenge: null, customChallenges: [], onboardingComplete: false, notificationsEnabled: false };
     await clearData();
-    setData({ habits: [], logs: [], challenge: null, customChallenges: [], onboardingComplete: false, notificationsEnabled: false });
+    setData(empty);
     setChallengeJustCompleted(null);
-  }, []);
+    // Wipe all remote data for this user too
+    db.pushAll(userId, empty).catch(() => {});
+  }, [userId]);
 
   return (
     <HabitsContext.Provider value={{

@@ -15,7 +15,7 @@ import type { NewHabitInput } from '../context/HabitsContext';
 import { useHabits } from '../context/HabitsContext';
 import { tapLight, celebrate } from '../utils/haptics';
 import { requestPermissions, scheduleReminders } from '../utils/notifications';
-import { webInner } from '../utils/responsive';
+import { webInner, webOuter } from '../utils/responsive';
 
 const PRESET_HABITS: NewHabitInput[] = [
   { name: 'Morning exercise', type: 'daily', targetCount: 1, emoji: '🏃', color: '#6C63FF', reminder: null },
@@ -79,6 +79,7 @@ export const OnboardingScreen: React.FC = () => {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={0}
         >
+          <View style={[styles.centerer, webOuter]}>
           <View style={[styles.inner, webInner]}>
             {/* Progress dots + skip */}
             <View style={styles.dotsRow}>
@@ -118,6 +119,7 @@ export const OnboardingScreen: React.FC = () => {
                 <Text style={styles.primaryBtnText}>{btnLabel}</Text>
               </TouchableOpacity>
             </View>
+          </View>
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -259,6 +261,7 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1 },
   kav: { flex: 1 },
+  centerer: { flex: 1 },
   inner: { flex: 1, paddingHorizontal: 0 },
   dotsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingTop: 16, paddingBottom: 4, paddingHorizontal: 20 },
   dotsCenter: { flex: 1, flexDirection: 'row', justifyContent: 'center', gap: 8 },

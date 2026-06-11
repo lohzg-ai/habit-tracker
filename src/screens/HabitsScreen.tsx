@@ -9,8 +9,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useHabits, resolveHabitsForChallenge } from '../context/HabitsContext';
+import { ScreenHeader } from '../components/ScreenHeader';
 import { AddHabitModal } from '../components/AddHabitModal';
 import { CreateChallengeModal } from '../components/CreateChallengeModal';
 import { SelectHabitsModal } from '../components/SelectHabitsModal';
@@ -71,10 +71,10 @@ export const HabitsScreen: React.FC = () => {
   return (
     <View style={[styles.root, webOuter]}>
       <View style={webInner}>
-        <SafeAreaView edges={['top']} style={styles.headerSafe}>
-          <Text style={styles.headerTitle}>My Habits</Text>
-          <Text style={styles.headerSub}>{data.habits.length} habit{data.habits.length !== 1 ? 's' : ''} tracked</Text>
-        </SafeAreaView>
+        <ScreenHeader
+          title="My Habits"
+          subtitle={`${data.habits.length} habit${data.habits.length !== 1 ? 's' : ''} tracked`}
+        />
 
         <FlatList
           data={data.habits}

@@ -1,17 +1,24 @@
 import React from 'react';
+import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator } from 'react-native';
 
+import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { HabitsProvider, useHabits } from './src/context/HabitsContext';
+import { UserProfileProvider, useUserProfile } from './src/context/UserProfileContext';
+import { useInactivityTimer } from './src/hooks/useInactivityTimer';
+
+import { AuthScreen } from './src/screens/AuthScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { TodayScreen } from './src/screens/TodayScreen';
 import { HabitsScreen } from './src/screens/HabitsScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
 import { StatsScreen } from './src/screens/StatsScreen';
 import { DevScreen } from './src/screens/DevScreen';
+import { ProfileModalProvider } from './src/context/ProfileModalContext';
 
 const Tab = createBottomTabNavigator();
 
@@ -52,8 +59,15 @@ function MainTabs() {
   );
 }
 
-function Root() {
+/** Wraps the authenticated app: detects inactivity, owns the profile modal. */
+function AuthenticatedApp() {
+  const { signOut } = useAuth();
   const { data, loading } = useHabits();
+  const { profile } = useUserProfile();
+
+  // Inactivity timer — calls signOut() after user-configured timeout
+  const panHandlers = useInactivityTimer(profile.inactivityTimeoutMins, signOut);
+
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: '#0D0B1A', alignItems: 'center', justifyContent: 'center' }}>
@@ -62,7 +76,45 @@ function Root() {
       </View>
     );
   }
-  return data.onboardingComplete ? <MainTabs /> : <OnboardingScreen />;
+
+  if (!data.onboardingComplete) {
+    return <OnboardingScreen />;
+  }
+
+  return (
+    // The outer View with panHandlers captures every touch to reset the inactivity timer
+    <View style={{ flex: 1 }} {...panHandlers}>
+      <MainTabs />
+    </View>
+  );
+}
+
+/** Auth gate: shows spinner → auth screen → app based on session state. */
+function AuthGate() {
+  const { session, user, authLoading } = useAuth();
+
+  if (authLoading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#0D0B1A', alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color="#6C63FF" size="large" />
+      </View>
+    );
+  }
+
+  if (!session || !user) {
+    return <AuthScreen />;
+  }
+
+  // key={user.id} forces full remount of all providers on account switch
+  return (
+    <UserProfileProvider key={user.id} userId={user.id}>
+      <HabitsProvider key={user.id} userId={user.id}>
+        <ProfileModalProvider>
+          <AuthenticatedApp />
+        </ProfileModalProvider>
+      </HabitsProvider>
+    </UserProfileProvider>
+  );
 }
 
 type ErrState = { error: Error | null };
@@ -96,10 +148,10 @@ export default function App() {
     <ErrorBoundary>
       <SafeAreaProvider>
         <NavigationContainer>
-          <HabitsProvider>
+          <AuthProvider>
             <StatusBar style="light" />
-            <Root />
-          </HabitsProvider>
+            <AuthGate />
+          </AuthProvider>
         </NavigationContainer>
       </SafeAreaProvider>
     </ErrorBoundary>

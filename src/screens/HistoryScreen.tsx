@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useHabits } from '../context/HabitsContext';
+import { ScreenHeader } from '../components/ScreenHeader';
 import { today, isToday } from '../utils/date';
 import { webOuter, webInner } from '../utils/responsive';
 
@@ -80,9 +80,7 @@ export const HistoryScreen: React.FC = () => {
   return (
     <View style={[styles.root, webOuter]}>
       <View style={webInner}>
-        <SafeAreaView edges={['top']} style={styles.headerSafe}>
-          <Text style={styles.headerTitle}>Activity Log</Text>
-
+        <ScreenHeader title="Activity Log">
           {/* Month navigator */}
           <View style={styles.monthNav}>
             <Pressable onPress={prevMonth} style={styles.navBtn}>
@@ -112,7 +110,7 @@ export const HistoryScreen: React.FC = () => {
               <Text style={styles.statChipLabel}>completion</Text>
             </View>
           </View>
-        </SafeAreaView>
+        </ScreenHeader>
 
         <FlatList
           data={days}
@@ -135,6 +133,7 @@ const DayRow: React.FC<{ day: DaySummary }> = ({ day }) => {
   const d = new Date(day.date + 'T00:00:00');
   const weekday = d.toLocaleDateString('en-US', { weekday: 'short' });
   const dayNum = d.getDate();
+  const monthShort = d.toLocaleDateString('en-US', { month: 'short' });
 
   // Future day with no simulated data — show as empty
   if (day.isFuture && !day.isSimulated && day.done === 0) {
@@ -143,6 +142,7 @@ const DayRow: React.FC<{ day: DaySummary }> = ({ day }) => {
         <View style={styles.dateCol}>
           <Text style={styles.weekday}>{weekday}</Text>
           <Text style={[styles.dayNum, styles.dayNumFuture]}>{dayNum}</Text>
+          <Text style={styles.dayMonth}>{monthShort}</Text>
         </View>
         <Text style={styles.futureText}>—</Text>
       </View>
@@ -163,6 +163,9 @@ const DayRow: React.FC<{ day: DaySummary }> = ({ day }) => {
         </Text>
         <Text style={[styles.dayNum, isT && { color: '#6C63FF' }, day.isFuture && { color: 'rgba(255,179,71,0.8)' }]}>
           {dayNum}
+        </Text>
+        <Text style={[styles.dayMonth, isT && { color: 'rgba(108,99,255,0.7)' }, day.isFuture && { color: 'rgba(255,179,71,0.5)' }]}>
+          {monthShort}
         </Text>
       </View>
       <View style={styles.rowRight}>
@@ -208,6 +211,7 @@ const styles = StyleSheet.create({
   navBtnText: { color: '#fff', fontSize: 22, fontWeight: '300' },
   navBtnTextDisabled: { color: 'rgba(255,255,255,0.3)' },
   monthLabel: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  dayMonth: { color: 'rgba(255,255,255,0.35)', fontSize: 10, fontWeight: '600', textTransform: 'uppercase', marginTop: 1 },
   statsRow: { flexDirection: 'row', gap: 10 },
   statChip: { flex: 1, backgroundColor: '#1E1B2E', borderRadius: 12, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
   statChipVal: { color: '#fff', fontSize: 18, fontWeight: '800' },
@@ -221,7 +225,7 @@ const styles = StyleSheet.create({
   rowFutureSim: { borderColor: 'rgba(255,179,71,0.25)', backgroundColor: 'rgba(255,179,71,0.06)' },
   dateCol: { width: 46 },
   weekday: { color: 'rgba(255,255,255,0.45)', fontSize: 11, fontWeight: '600', textTransform: 'uppercase' },
-  dayNum: { color: '#fff', fontSize: 20, fontWeight: '700' },
+  dayNum: { color: '#fff', fontSize: 20, fontWeight: '700', lineHeight: 22 },
   dayNumFuture: { color: 'rgba(255,255,255,0.3)' },
   rowRight: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
   barBg: { flex: 1, height: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' },
