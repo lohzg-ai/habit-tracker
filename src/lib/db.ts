@@ -237,6 +237,11 @@ export const db = {
     await supabase.from('user_settings').upsert(row);
   },
 
+  /** Save (or clear with null) this device's Expo push token for server-triggered coaching pushes. */
+  async updatePushToken(userId: string, token: string | null): Promise<void> {
+    await supabase.from('user_settings').upsert({ user_id: userId, push_token: token });
+  },
+
   /** Upload avatar image from a local URI and return the public URL, or null on failure. */
   async uploadAvatar(userId: string, uri: string): Promise<string | null> {
     try {

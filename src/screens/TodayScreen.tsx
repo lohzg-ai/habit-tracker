@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { useUserProfile } from '../context/UserProfileContext';
 import { useProfileModal } from '../context/ProfileModalContext';
 import { HabitCard } from '../components/HabitCard';
+import { CoachCard } from '../components/CoachCard';
 import { ProgressRing } from '../components/ProgressRing';
 import { CelebrationOverlay } from '../components/CelebrationOverlay';
 import { ChallengeRewardModal } from '../components/ChallengeRewardModal';
@@ -102,6 +103,7 @@ export const TodayScreen: React.FC = () => {
                   onSelect={(id) => { tapLight(); setSelectedView(id); }}
                 />
               )}
+              <CoachCard />
             </>
           }
           ListEmptyComponent={

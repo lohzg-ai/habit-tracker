@@ -65,3 +65,20 @@ export type CompletedChallengeInfo = {
   type: 'main' | 'custom';
   customId?: string;
 };
+
+export type AiNudge = {
+  id: string;
+  message: string;
+  createdAt: string;
+};
+
+export type AiReportPeriod = 'weekly' | 'monthly';
+
+export type AiReport = {
+  id: string;
+  periodType: AiReportPeriod;
+  periodStart: string;
+  periodEnd: string;
+  summary: string;
+  createdAt: string;
+};

@@ -14,10 +14,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { webOuter, webInner } from '../utils/responsive';
 
-type Mode = 'signin' | 'signup';
+type Mode = 'signin' | 'signup' | 'forgot';
 
 export function AuthScreen() {
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, resetPassword } = useAuth();
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,9 +25,24 @@ export function AuthScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [signUpDone, setSignUpDone] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   const submit = async () => {
     setError(null);
+
+    if (mode === 'forgot') {
+      if (!email.trim()) {
+        setError('Please enter your email.');
+        return;
+      }
+      setLoading(true);
+      const err = await resetPassword(email.trim());
+      if (err) setError(err);
+      else setResetSent(true);
+      setLoading(false);
+      return;
+    }
+
     if (!email.trim() || !password) {
       setError('Please enter your email and password.');
       return;
@@ -51,6 +66,7 @@ export function AuthScreen() {
     setMode(next);
     setError(null);
     setSignUpDone(false);
+    setResetSent(false);
   };
 
   return (
@@ -73,24 +89,26 @@ export function AuthScreen() {
             </View>
 
             {/* Mode tabs */}
-            <View style={s.tabs}>
-              <Pressable
-                style={[s.tab, mode === 'signin' && s.tabActive]}
-                onPress={() => switchMode('signin')}
-              >
-                <Text style={[s.tabLabel, mode === 'signin' && s.tabLabelActive]}>
-                  Sign in
-                </Text>
-              </Pressable>
-              <Pressable
-                style={[s.tab, mode === 'signup' && s.tabActive]}
-                onPress={() => switchMode('signup')}
-              >
-                <Text style={[s.tabLabel, mode === 'signup' && s.tabLabelActive]}>
-                  Create account
-                </Text>
-              </Pressable>
-            </View>
+            {mode !== 'forgot' && (
+              <View style={s.tabs}>
+                <Pressable
+                  style={[s.tab, mode === 'signin' && s.tabActive]}
+                  onPress={() => switchMode('signin')}
+                >
+                  <Text style={[s.tabLabel, mode === 'signin' && s.tabLabelActive]}>
+                    Sign in
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[s.tab, mode === 'signup' && s.tabActive]}
+                  onPress={() => switchMode('signup')}
+                >
+                  <Text style={[s.tabLabel, mode === 'signup' && s.tabLabelActive]}>
+                    Create account
+                  </Text>
+                </Pressable>
+              </View>
+            )}
 
             {/* Sign-up confirmation */}
             {signUpDone ? (
@@ -106,8 +124,28 @@ export function AuthScreen() {
                   <Text style={s.btnLabel}>Back to sign in</Text>
                 </Pressable>
               </View>
+            ) : resetSent ? (
+              <View style={s.confirmBox}>
+                <Text style={s.confirmIcon}>📬</Text>
+                <Text style={s.confirmTitle}>Check your email</Text>
+                <Text style={s.confirmBody}>
+                  If an account exists for{' '}
+                  <Text style={s.confirmEmail}>{email}</Text>, we sent a password reset link.{'\n'}
+                  Click it to set a new password.
+                </Text>
+                <Pressable style={s.btn} onPress={() => switchMode('signin')}>
+                  <Text style={s.btnLabel}>Back to sign in</Text>
+                </Pressable>
+              </View>
             ) : (
               <>
+                {mode === 'forgot' && (
+                  <View style={s.forgotHeader}>
+                    <Text style={s.forgotTitle}>Reset your password</Text>
+                    <Text style={s.forgotBody}>Enter your account email and we'll send you a reset link.</Text>
+                  </View>
+                )}
+
                 {/* Form */}
                 <View style={s.form}>
                   <Text style={s.fieldLabel}>Email</Text>
@@ -123,28 +161,38 @@ export function AuthScreen() {
                     returnKeyType="next"
                   />
 
-                  <Text style={[s.fieldLabel, { marginTop: 16 }]}>Password</Text>
-                  <View style={s.passwordRow}>
-                    <TextInput
-                      style={[s.input, s.passwordInput]}
-                      value={password}
-                      onChangeText={setPassword}
-                      placeholder={mode === 'signup' ? 'Min. 6 characters' : '••••••••'}
-                      placeholderTextColor="rgba(255,255,255,0.25)"
-                      secureTextEntry={!showPassword}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      returnKeyType="done"
-                      onSubmitEditing={submit}
-                    />
-                    <Pressable
-                      style={s.eyeBtn}
-                      onPress={() => setShowPassword((v) => !v)}
-                      hitSlop={8}
-                    >
-                      <Text style={s.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
+                  {mode !== 'forgot' && (
+                    <>
+                      <Text style={[s.fieldLabel, { marginTop: 16 }]}>Password</Text>
+                      <View style={s.passwordRow}>
+                        <TextInput
+                          style={[s.input, s.passwordInput]}
+                          value={password}
+                          onChangeText={setPassword}
+                          placeholder={mode === 'signup' ? 'Min. 6 characters' : '••••••••'}
+                          placeholderTextColor="rgba(255,255,255,0.25)"
+                          secureTextEntry={!showPassword}
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          returnKeyType="done"
+                          onSubmitEditing={submit}
+                        />
+                        <Pressable
+                          style={s.eyeBtn}
+                          onPress={() => setShowPassword((v) => !v)}
+                          hitSlop={8}
+                        >
+                          <Text style={s.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
+                        </Pressable>
+                      </View>
+                    </>
+                  )}
+
+                  {mode === 'signin' && (
+                    <Pressable onPress={() => switchMode('forgot')} hitSlop={8} style={s.forgotLinkRow}>
+                      <Text style={s.forgotLink}>Forgot password?</Text>
                     </Pressable>
-                  </View>
+                  )}
 
                   {error ? <Text style={s.errorText}>{error}</Text> : null}
 
@@ -157,10 +205,16 @@ export function AuthScreen() {
                       <ActivityIndicator color="#fff" />
                     ) : (
                       <Text style={s.btnLabel}>
-                        {mode === 'signin' ? 'Sign in' : 'Create account'}
+                        {mode === 'signin' ? 'Sign in' : mode === 'signup' ? 'Create account' : 'Send reset link'}
                       </Text>
                     )}
                   </Pressable>
+
+                  {mode === 'forgot' && (
+                    <Pressable onPress={() => switchMode('signin')} hitSlop={8} style={{ marginTop: 18 }}>
+                      <Text style={s.forgotLink}>Back to sign in</Text>
+                    </Pressable>
+                  )}
                 </View>
               </>
             )}
@@ -243,4 +297,10 @@ const s = StyleSheet.create({
     marginBottom: 28,
   },
   confirmEmail: { color: '#6C63FF', fontWeight: '600' },
+
+  forgotHeader: { marginBottom: 24, alignItems: 'center' },
+  forgotTitle: { color: '#fff', fontSize: 18, fontWeight: '700', marginBottom: 6 },
+  forgotBody: { color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center', lineHeight: 19 },
+  forgotLinkRow: { alignSelf: 'flex-end', marginTop: 10 },
+  forgotLink: { color: '#6C63FF', fontSize: 13, fontWeight: '600', textAlign: 'center' },
 });

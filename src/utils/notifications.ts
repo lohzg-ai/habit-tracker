@@ -1,4 +1,5 @@
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import type { Habit } from '../types';
 
@@ -72,6 +73,30 @@ export const scheduleReminders = async () => {
 export const cancelAllReminders = () => {
   if (Platform.OS === 'web') return;
   Notifications.cancelAllScheduledNotificationsAsync().catch(() => {});
+};
+
+/**
+ * Registers this device for remote push (server-triggered AI coaching pushes) and
+ * returns the Expo push token, or null on web/no-permission/no EAS project configured.
+ * Requires `expo.extra.eas.projectId` in app.json (set via `eas init`).
+ */
+export const getExpoPushToken = async (): Promise<string | null> => {
+  if (Platform.OS === 'web') return null;
+  const granted = await requestPermissions();
+  if (!granted) return null;
+  const projectId =
+    Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+  if (!projectId) {
+    if (__DEV__) console.warn('[notifications] No EAS projectId configured — run `eas init` to enable push notifications.');
+    return null;
+  }
+  try {
+    const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
+    return data;
+  } catch (err) {
+    if (__DEV__) console.warn('[notifications] getExpoPushTokenAsync failed', err);
+    return null;
+  }
 };
 
 export const fmt12h = (hour: number, minute: number): string => {

@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { bigCelebrate } from '../utils/haptics';
+import { playChallengeComplete } from '../utils/sound';
 
 type Props = {
   visible: boolean;
@@ -31,6 +32,7 @@ export const ChallengeRewardModal: React.FC<Props> = ({ visible, challengeName, 
       star1.setValue(0);
       star2.setValue(0);
       star3.setValue(0);
+      playChallengeComplete();
       bigCelebrate();
       Animated.parallel([
         Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true }),

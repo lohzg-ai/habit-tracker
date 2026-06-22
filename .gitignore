@@ -41,3 +41,9 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Supabase CLI local state (linked project ref, service versions — machine-specific)
+supabase/.temp/
+
+# scratch/manual reference docs not meant for the repo
+*.docx

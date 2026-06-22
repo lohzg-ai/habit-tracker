@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
 
 const bell = (
   ctx: AudioContext,
@@ -60,10 +61,75 @@ const playAllDoneWeb = () => {
   } catch (_) {}
 };
 
+// Native playback (iOS/Android) — pre-generated WAV chimes matching the web bell
+// synthesis above (see scripts/generate-chime-sounds.mjs). Players are created lazily
+// so importing this module never touches the audio system on web.
+let habitCompletePlayer: AudioPlayer | null = null;
+let allDonePlayer: AudioPlayer | null = null;
+let challengeCompletePlayer: AudioPlayer | null = null;
+
+const playNative = (getPlayer: () => AudioPlayer) => {
+  try {
+    const player = getPlayer();
+    player.seekTo(0);
+    player.play();
+  } catch (_) {}
+};
+
 export const playHabitComplete = () => {
-  if (Platform.OS === 'web') playHabitCompleteWeb();
+  if (Platform.OS === 'web') {
+    playHabitCompleteWeb();
+  } else {
+    playNative(() => {
+      if (!habitCompletePlayer) {
+        habitCompletePlayer = createAudioPlayer(require('../../assets/sounds/habit-complete.wav'));
+      }
+      return habitCompletePlayer;
+    });
+  }
 };
 
 export const playAllDone = () => {
-  if (Platform.OS === 'web') playAllDoneWeb();
+  if (Platform.OS === 'web') {
+    playAllDoneWeb();
+  } else {
+    playNative(() => {
+      if (!allDonePlayer) {
+        allDonePlayer = createAudioPlayer(require('../../assets/sounds/all-done.wav'));
+      }
+      return allDonePlayer;
+    });
+  }
+};
+
+// All-habits-done chord swell, reused as the challenge-complete fanfare on web
+// (mirrors playAllDoneWeb's chord but with an added crowning note).
+const playChallengeCompleteWeb = () => {
+  try {
+    const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx: AudioContext = new AudioCtx();
+    const t = ctx.currentTime;
+    bell(ctx, 523.25, t, 0.12, 0.5);         // C5
+    bell(ctx, 659.25, t + 0.08, 0.12, 0.5);  // E5
+    bell(ctx, 783.99, t + 0.16, 0.12, 0.5);  // G5
+    bell(ctx, 1046.5, t + 0.24, 0.13, 0.6);  // C6
+    bell(ctx, 523.25, t + 0.34, 0.10, 2.0);  // sustained chord
+    bell(ctx, 783.99, t + 0.34, 0.10, 2.0);
+    bell(ctx, 1046.5, t + 0.34, 0.10, 2.0);
+    bell(ctx, 1318.5, t + 0.34, 0.11, 1.8);  // E6 — crowning note
+  } catch (_) {}
+};
+
+export const playChallengeComplete = () => {
+  if (Platform.OS === 'web') {
+    playChallengeCompleteWeb();
+  } else {
+    playNative(() => {
+      if (!challengeCompletePlayer) {
+        challengeCompletePlayer = createAudioPlayer(require('../../assets/sounds/challenge-complete.wav'));
+      }
+      return challengeCompletePlayer;
+    });
+  }
 };

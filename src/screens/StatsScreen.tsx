@@ -1,9 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, Platform, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useHabits } from '../context/HabitsContext';
+import { useAuth } from '../context/AuthContext';
 import { ScreenHeader } from '../components/ScreenHeader';
+import { ReportsSection } from '../components/ReportsSection';
 import { addDays, today, shortDay } from '../utils/date';
-import { scheduleReminders, cancelAllReminders, requestPermissions } from '../utils/notifications';
+import { scheduleReminders, cancelAllReminders, requestPermissions, getExpoPushToken } from '../utils/notifications';
+import { db } from '../lib/db';
 import { webOuter, webInner } from '../utils/responsive';
 
 const CHART_DAYS = 7;
@@ -21,6 +24,7 @@ type BarData = {
 
 export const StatsScreen: React.FC = () => {
   const { data, toggleNotifications } = useHabits();
+  const { user } = useAuth();
   const [notifLoading, setNotifLoading] = useState(false);
 
   const bars = useMemo<BarData[]>(() => {
@@ -76,10 +80,13 @@ export const StatsScreen: React.FC = () => {
             return;
           }
           await scheduleReminders();
+          const pushToken = await getExpoPushToken();
+          if (user && pushToken) await db.updatePushToken(user.id, pushToken);
         }
         await toggleNotifications(true);
       } else {
         cancelAllReminders();
+        if (user) await db.updatePushToken(user.id, null);
         await toggleNotifications(false);
       }
     } finally {
@@ -151,6 +158,8 @@ export const StatsScreen: React.FC = () => {
             </View>
           </View>
 
+          <ReportsSection />
+
           {/* Per-habit */}
           {data.habits.length > 0 && (
             <View style={styles.section}>
@@ -187,11 +196,11 @@ export const StatsScreen: React.FC = () => {
             <Text style={styles.sectionTitle}>Settings</Text>
             <View style={styles.settingRow}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.settingLabel}>Daily reminders</Text>
+                <Text style={styles.settingLabel}>Daily reminders & AI coach pushes</Text>
                 <Text style={styles.settingMeta}>
                   {Platform.OS === 'web'
                     ? 'Active on mobile device when installed'
-                    : '8 AM · 2 PM · 8 PM (per-habit reminders set in Habits tab)'}
+                    : '8 AM · 2 PM · 8 PM reminders, plus an AI coaching nudge later in the day (per-habit reminders set in Habits tab)'}
                 </Text>
               </View>
               <Switch
