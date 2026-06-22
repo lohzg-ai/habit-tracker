@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 760" font-family="-apple-system,Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8A84B0"/>
+    </marker>
+  </defs>
+
+  <rect width="1000" height="760" fill="#0D0B1A"/>
+  <text x="500" y="34" text-anchor="middle" fill="#F2F0FA" font-size="22" font-weight="700">HabitFlow Architecture</text>
+
+  <!-- Client column -->
+  <rect x="30" y="60" width="430" height="500" rx="14" fill="#1A1726" stroke="#6C63FF" stroke-width="1.5"/>
+  <text x="245" y="88" text-anchor="middle" fill="#6C63FF" font-size="15" font-weight="700">CLIENT (Expo · iOS / Android / Web)</text>
+
+  <!-- Provider tree -->
+  <g font-size="12" fill="#F2F0FA">
+    <rect x="55" y="105" width="380" height="40" rx="8" fill="#1E1B2E" stroke="#43474f"/>
+    <text x="245" y="129" text-anchor="middle">AuthContext — session, signIn/signUp/signOut</text>
+
+    <rect x="75" y="155" width="340" height="40" rx="8" fill="#1E1B2E" stroke="#43474f"/>
+    <text x="245" y="179" text-anchor="middle">UserProfileContext — name, avatar, timeout</text>
+
+    <rect x="95" y="205" width="300" height="40" rx="8" fill="#1E1B2E" stroke="#43474f"/>
+    <text x="245" y="229" text-anchor="middle">HabitsContext — habits, logs, challenges, sync</text>
+
+    <rect x="115" y="255" width="260" height="36" rx="8" fill="#1E1B2E" stroke="#43474f"/>
+    <text x="245" y="277" text-anchor="middle" font-size="11">ProfileModalContext</text>
+  </g>
+
+  <!-- Screens -->
+  <text x="245" y="312" text-anchor="middle" fill="#8A84B0" font-size="11">renders</text>
+  <g font-size="11" fill="#F2F0FA">
+    <rect x="50" y="322" width="90" height="32" rx="7" fill="#262134" stroke="#6C63FF"/>
+    <text x="95" y="343" text-anchor="middle">Today</text>
+    <rect x="150" y="322" width="90" height="32" rx="7" fill="#262134" stroke="#6C63FF"/>
+    <text x="195" y="343" text-anchor="middle">Habits</text>
+    <rect x="250" y="322" width="90" height="32" rx="7" fill="#262134" stroke="#6C63FF"/>
+    <text x="295" y="343" text-anchor="middle">History</text>
+    <rect x="350" y="322" width="90" height="32" rx="7" fill="#262134" stroke="#6C63FF"/>
+    <text x="395" y="343" text-anchor="middle">Stats</text>
+  </g>
+
+  <!-- AsyncStorage box -->
+  <rect x="55" y="380" width="380" height="60" rx="10" fill="#262134" stroke="#FFB347" stroke-width="1.5"/>
+  <text x="245" y="403" text-anchor="middle" fill="#FFB347" font-size="13" font-weight="700">AsyncStorage</text>
+  <text x="245" y="421" text-anchor="middle" fill="#D8D4EA" font-size="11">local cache · written on every mutation</text>
+
+  <!-- persist() flow label -->
+  <text x="245" y="370" text-anchor="middle" fill="#8A84B0" font-size="10">persist(): setData → saveData → scheduleSync (300ms debounce)</text>
+
+  <!-- Notifications box -->
+  <rect x="55" y="460" width="380" height="80" rx="10" fill="#262134" stroke="#43D9B8" stroke-width="1.5"/>
+  <text x="245" y="483" text-anchor="middle" fill="#43D9B8" font-size="13" font-weight="700">Notifications &amp; Sound</text>
+  <text x="245" y="502" text-anchor="middle" fill="#D8D4EA" font-size="11">expo-notifications (local reminders)</text>
+  <text x="245" y="519" text-anchor="middle" fill="#D8D4EA" font-size="11">Web Audio (web) / expo-audio (native) chimes</text>
+
+  <!-- Arrow client -> supabase -->
+  <line x1="460" y1="230" x2="540" y2="230" stroke="#8A84B0" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="540" y1="245" x2="460" y2="245" stroke="#8A84B0" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="500" y="222" text-anchor="middle" fill="#8A84B0" font-size="9">sync</text>
+
+  <!-- Supabase column -->
+  <rect x="540" y="60" width="430" height="280" rx="14" fill="#1A1726" stroke="#43D9B8" stroke-width="1.5"/>
+  <text x="755" y="88" text-anchor="middle" fill="#43D9B8" font-size="15" font-weight="700">SUPABASE (source of truth)</text>
+
+  <rect x="565" y="105" width="120" height="50" rx="8" fill="#1E1B2E" stroke="#43474f"/>
+  <text x="625" y="135" text-anchor="middle" fill="#F2F0FA" font-size="12">Auth</text>
+
+  <rect x="700" y="105" width="120" height="50" rx="8" fill="#1E1B2E" stroke="#43474f"/>
+  <text x="760" y="125" text-anchor="middle" fill="#F2F0FA" font-size="12">Postgres</text>
+  <text x="760" y="142" text-anchor="middle" fill="#8A84B0" font-size="9">7 tables · RLS</text>
+
+  <rect x="835" y="105" width="120" height="50" rx="8" fill="#1E1B2E" stroke="#43474f"/>
+  <text x="895" y="135" text-anchor="middle" fill="#F2F0FA" font-size="12">Storage</text>
+
+  <text x="755" y="180" text-anchor="middle" fill="#8A84B0" font-size="10">habits · habit_logs · user_challenges · custom_challenges</text>
+  <text x="755" y="195" text-anchor="middle" fill="#8A84B0" font-size="10">user_settings · ai_nudges · ai_reports</text>
+
+  <!-- Edge functions -->
+  <rect x="565" y="220" width="175" height="60" rx="8" fill="#262134" stroke="#6C63FF" stroke-width="1.5"/>
+  <text x="652" y="244" text-anchor="middle" fill="#F2F0FA" font-size="12" font-weight="700">ai-coach</text>
+  <text x="652" y="261" text-anchor="middle" fill="#8A84B0" font-size="10">client-invoked nudges/reports</text>
+
+  <rect x="780" y="220" width="175" height="60" rx="8" fill="#262134" stroke="#6C63FF" stroke-width="1.5"/>
+  <text x="867" y="244" text-anchor="middle" fill="#F2F0FA" font-size="12" font-weight="700">push-coach</text>
+  <text x="867" y="261" text-anchor="middle" fill="#8A84B0" font-size="10">pg_cron-invoked daily push</text>
+
+  <line x1="755" y1="155" x2="652" y2="220" stroke="#8A84B0" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="755" y1="155" x2="867" y2="220" stroke="#8A84B0" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Cron -->
+  <rect x="780" y="300" width="175" height="34" rx="8" fill="#1E1B2E" stroke="#FFB347"/>
+  <text x="867" y="322" text-anchor="middle" fill="#FFB347" font-size="11">pg_cron (daily)</text>
+  <line x1="867" y1="300" x2="867" y2="280" stroke="#FFB347" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Claude box -->
+  <rect x="660" y="400" width="200" height="60" rx="10" fill="#1A1726" stroke="#C77DFF" stroke-width="1.5"/>
+  <text x="760" y="424" text-anchor="middle" fill="#C77DFF" font-size="13" font-weight="700">Anthropic Claude</text>
+  <text x="760" y="441" text-anchor="middle" fill="#8A84B0" font-size="10">claude-sonnet-4-6</text>
+
+  <line x1="652" y1="280" x2="730" y2="400" stroke="#8A84B0" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="867" y1="280" x2="800" y2="400" stroke="#8A84B0" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Expo push service -->
+  <rect x="660" y="490" width="200" height="60" rx="10" fill="#1A1726" stroke="#FFB347" stroke-width="1.5"/>
+  <text x="760" y="514" text-anchor="middle" fill="#FFB347" font-size="13" font-weight="700">Expo Push Service</text>
+  <text x="760" y="531" text-anchor="middle" fill="#8A84B0" font-size="10">exp.host/--/api/v2/push/send</text>
+
+  <line x1="867" y1="280" x2="800" y2="490" stroke="#8A84B0" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+
+  <!-- Push back to device -->
+  <line x1="660" y1="520" x2="460" y2="430" stroke="#8A84B0" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+  <text x="560" y="465" text-anchor="middle" fill="#8A84B0" font-size="9" transform="rotate(-15 560 465)">push notification</text>
+
+  <!-- Legend -->
+  <g font-size="11" fill="#8A84B0">
+    <line x1="55" y1="600" x2="85" y2="600" stroke="#8A84B0" stroke-width="2"/>
+    <text x="92" y="604">sync / call</text>
+    <line x1="190" y1="600" x2="220" y2="600" stroke="#8A84B0" stroke-width="2" stroke-dasharray="4 3"/>
+    <text x="227" y="604">push delivery</text>
+  </g>
+
+  <text x="500" y="635" text-anchor="middle" fill="#8A84B0" font-size="11">AsyncStorage is a fast local cache; Supabase is the durable source of truth. Init is cache-first once onboarding is complete.</text>
+  <text x="500" y="655" text-anchor="middle" fill="#8A84B0" font-size="11">ai-coach and push-coach each call Claude directly, persist results to ai_nudges / ai_reports, then the client reads them back.</text>
+</svg>

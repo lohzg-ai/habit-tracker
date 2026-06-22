@@ -4,6 +4,12 @@ A habit tracker built with Expo and React Native. Runs on iOS, Android, and web 
 
 Built with Claude Code.
 
+## Architecture
+
+![HabitFlow architecture diagram](assets/architecture-diagram.svg)
+
+The client (Expo app) nests React Contexts in a provider tree — `AuthContext` → `UserProfileContext` → `HabitsContext` → `ProfileModalContext` — feeding the Today/Habits/History/Stats screens. Every habit mutation goes through `persist()`: an instant local state update, an `AsyncStorage` write (fast cache), then a 300ms-debounced sync to Supabase, which is the durable source of truth. Two Supabase Edge Functions (`ai-coach`, `push-coach`) call Anthropic Claude to generate coaching content — `ai-coach` on client request, `push-coach` on a daily `pg_cron` schedule, relaying through the Expo Push Service for users who aren't in the app.
+
 ## Features
 
 ### Authentication
